@@ -527,7 +527,7 @@ h2 { margin: 0; font-size: clamp(38px, 4vw, 59px); line-height: 1.04; font-weigh
           </div>
         </div>
 
-        <form class="contact-form reveal" id="quote-form" action="send-enquiry.php" method="post">
+        <form class="contact-form reveal" id="quote-form">
           <div class="form-heading">
             <h3>Request a quote</h3>
             <p>We’ll use these details to understand your requirement.</p>
@@ -656,23 +656,41 @@ const submitButton = quoteForm.querySelector('button[type="submit"]');
 
 quoteForm.addEventListener('submit', async (event) => {
   event.preventDefault();
+
   formStatus.className = 'form-note';
   formStatus.textContent = 'Sending your enquiry...';
   submitButton.disabled = true;
 
+  const formData = new FormData(quoteForm);
+
+  const enquiryData = {
+    name: formData.get('name'),
+    phone: formData.get('phone'),
+    email: formData.get('email'),
+    requirement: formData.get('requirement'),
+    website: formData.get('website') || ''
+  };
+
   try {
-    const response = await fetch(quoteForm.action, {
+    const response = await fetch('/api/enquiry', {
       method: 'POST',
-      body: new FormData(quoteForm),
-      headers: { 'Accept': 'application/json' }
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(enquiryData)
     });
-    const result = await response.json().catch(() => ({}));
-    if (!response.ok || !result.ok) throw new Error(result.message || 'Unable to send enquiry.');
+
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+      throw new Error(result.message || 'Unable to send enquiry.');
+    }
 
     quoteForm.reset();
     formStatus.className = 'form-note success';
     formStatus.textContent = 'Thank you. Your enquiry has been sent successfully.';
   } catch (error) {
+    console.error('Enquiry error:', error);
     formStatus.className = 'form-note error';
     formStatus.textContent = error.message || 'Something went wrong. Please try again.';
   } finally {
